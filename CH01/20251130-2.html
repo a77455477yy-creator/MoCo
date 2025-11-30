@@ -1,178 +1,108 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>地理位置與感測器（權限檢查版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的地理位置</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #status {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        .coordinate {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>🌎 地理位置資訊</h1>
-    <p>服務狀態: <span id="service-status">正在檢查服務支援...</span></p>
-    <p>地理位置權限狀態: <span id="geo-permission-status">正在檢查權限...</span></p>
-    
-    <hr>
-    
-    <p>緯度 (Latitude): <span id="latitude-value">等待讀取...</span></p>
-    <p>經度 (Longitude): <span id="longitude-value">等待讀取...</span></p>
+    <h1>我的當前經緯度</h1>
+    <p id="status">正在檢查地理位置服務...</p>
 
-    <hr>
-
-    <h1>🏃 加速度感測器 (DeviceMotionEvent)</h1>
-    <p id="motion-status">正在檢查支援...</p>
-    <p>感測器權限檢查結果: <span id="sensor-permission-result">未檢查</span></p>
+    <div id="latitude-display" class="coordinate">緯度: 待取得</div>
+    <div id="longitude-display" class="coordinate">經度: 待取得</div>
     
-    <p>X 軸加速度 (Gravity): <span id="accel-x">0</span> g/秒²</p>
-    <p>Y 軸加速度 (Gravity): <span id="accel-y">0</span> g/秒²</p>
-    <p>Z 軸加速度 (Gravity): <span id="accel-z">0</span> g/秒²</p>
-
     <script>
-        // --- HTML 元素獲取 ---
-        const serviceStatusElement = document.getElementById('service-status');
-        const geoPermissionStatusElement = document.getElementById('geo-permission-status');
-        const latElement = document.getElementById('latitude-value');
-        const lonElement = document.getElementById('longitude-value');
-        const motionStatusElement = document.getElementById('motion-status');
-        const sensorPermissionResultElement = document.getElementById('sensor-permission-result');
-        const accelXElement = document.getElementById('accel-x');
-        const accelYElement = document.getElementById('accel-y');
-        const accelZElement = document.getElementById('accel-z');
+        // 取得 DOM 元素以更新資訊
+        const statusDisplay = document.getElementById('status');
+        const latitudeDisplay = document.getElementById('latitude-display');
+        const longitudeDisplay = document.getElementById('longitude-display');
 
-        // --- 您提供的感測器權限請求函數 ---
         /**
-         * 請求感測器權限（部分瀏覽器需要）
+         * 處理成功取得位置的結果
+         * @param {Position} position - 包含地理位置資訊的物件
          */
-        async function requestSensorPermissions() {
-            if (!navigator.permissions) {
-                sensorPermissionResultElement.textContent = "⚠️ 瀏覽器不支援 navigator.permissions API。";
-                return;
-            }
-
-            try {
-                // 檢查加速度計權限
-                const accelPerm = await navigator.permissions.query({ name: 'accelerometer' });
-                // 檢查陀螺儀權限
-                const gyroPerm = await navigator.permissions.query({ name: 'gyroscope' });
-                
-                let resultText = `加速度計: ${accelPerm.state} | 陀螺儀: ${gyroPerm.state}`;
-
-                if (accelPerm.state === 'denied' || gyroPerm.state === 'denied') {
-                    resultText = "❌ " + resultText + " (感測器權限被拒絕，可能無法運作)";
-                } else if (accelPerm.state === 'prompt' || gyroPerm.state === 'prompt') {
-                     resultText = "❗ " + resultText + " (需要操作來觸發授權)";
-                } else {
-                     resultText = "✅ " + resultText + " (感測器權限檢查通過)";
-                }
-
-                sensorPermissionResultElement.textContent = resultText;
-            } catch (error) {
-                sensorPermissionResultElement.textContent = `權限請求可能不被支援: ${error.message}`;
-                console.error("權限請求錯誤:", error);
-            }
-        }
-
-        // --- 地理位置相關函數 ---
         function handlePosition(position) {
             const coords = position.coords;
-            latElement.textContent = coords.latitude;
-            lonElement.textContent = coords.longitude;
-            serviceStatusElement.textContent = "✅ 位置讀取成功！";
-        }
-
-        function handlePositionError(error) {
-            let errorMessage = "位置讀取失敗。";
-            if (error.code === error.PERMISSION_DENIED) {
-                errorMessage += "使用者拒絕了請求，請檢查權限設定。";
-            } else {
-                errorMessage += `發生錯誤 (代碼: ${error.code})。`;
-            }
-            serviceStatusElement.textContent = `❌ ${errorMessage}`;
-            latElement.textContent = "無法取得";
-            lonElement.textContent = "無法取得";
-        }
-
-        async function checkGeoPermissionStatus() {
-            if (!navigator.permissions) {
-                geoPermissionStatusElement.textContent = "⚠️ 瀏覽器不支援權限檢查 API。";
-                return;
-            }
-
-            try {
-                const permission = await navigator.permissions.query({ name: 'geolocation' });
-                geoPermissionStatusElement.textContent = `狀態: ${permission.state}`;
-                if (permission.state === 'denied') {
-                    geoPermissionStatusElement.textContent += " (❌ 已拒絕！)";
-                }
-            } catch (e) {
-                geoPermissionStatusElement.textContent = "⚠️ 權限檢查失敗。";
-            }
-        }
-
-        function getGeolocation() {
-            if ("geolocation" in navigator) {
-                serviceStatusElement.textContent = "👍 地理位置服務可用，正在請求位置...";
-                checkGeoPermissionStatus();
-
-                navigator.geolocation.getCurrentPosition(
-                    handlePosition,  
-                    handlePositionError 
-                );
-            } else {
-                serviceStatusElement.textContent = "👎 地理位置服務不可用。";
-                latElement.textContent = "不支援";
-                lonElement.textContent = "不支援";
-            }
-        }
-
-        // --- 加速度感測器相關函數 ---
-        function handleDeviceMotion(event) {
-            const acceleration = event.accelerationIncludingGravity;
             
-            if (acceleration) {
-                accelXElement.textContent = acceleration.x.toFixed(2);
-                accelYElement.textContent = acceleration.y.toFixed(2);
-                accelZElement.textContent = acceleration.z.toFixed(2);
-            }
+            // 只取得並顯示經度和緯度
+            const latitude = coords.latitude;
+            const longitude = coords.longitude;
+
+            statusDisplay.textContent = "✅ 位置取得成功！";
+            latitudeDisplay.textContent = `緯度 (Latitude): ${latitude}`;
+            longitudeDisplay.textContent = `經度 (Longitude): ${longitude}`;
+
+            // 您也可以在這裡看到其他資訊 (可選)
+            console.log("緯度:", latitude);
+            console.log("經度:", longitude);
+            console.log("精度 (公尺):", coords.accuracy); 
         }
 
-        function startDeviceMotion() {
-            // 檢查是否支援 DeviceMotionEvent
-            if ('DeviceMotionEvent' in window) {
-                motionStatusElement.textContent = "👍 加速度感測器支援。正在監聽數據...";
-                window.addEventListener('devicemotion', handleDeviceMotion);
-                
-                // 針對 iOS 13+ 的處理
-                if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                    motionStatusElement.textContent = "❗ 需要點擊螢幕進行感測器授權 (iOS 13+)。";
-                    
-                    document.body.addEventListener('click', () => {
-                         DeviceMotionEvent.requestPermission().then(permissionState => {
-                            if (permissionState === 'granted') {
-                                motionStatusElement.textContent = "✅ 加速度感測器已授權並開始監聽。";
-                            } else {
-                                motionStatusElement.textContent = "❌ 加速度感測器權限被拒絕。";
-                            }
-                        }).catch(console.error);
-                    }, { once: true });
-                }
-
-            } else {
-                motionStatusElement.textContent = "👎 瀏覽器或裝置不支援加速度感測器。";
-            }
-        }
-
-        // --- 頁面載入後執行 ---
-        async function init() {
-            // 1. 執行您要求的感測器權限檢查
-            await requestSensorPermissions(); 
+        /**
+         * 處理取得位置失敗的結果
+         * @param {PositionError} error - 錯誤物件
+         */
+        function handleError(error) {
+            let message = "❌ 位置取得失敗！";
             
-            // 2. 啟動地理位置服務
-            getGeolocation();
-            
-            // 3. 啟動加速度感測器
-            startDeviceMotion();
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += " 您拒絕了地理位置請求。";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += " 位置資訊不可用。";
+                    break;
+                case error.TIMEOUT:
+                    message += " 請求超時。";
+                    break;
+                default:
+                    message += ` 發生未知錯誤 (錯誤碼: ${error.code})。`;
+            }
+
+            statusDisplay.textContent = message;
+            console.error("位置錯誤:", error);
+            latitudeDisplay.textContent = `緯度: -`;
+            longitudeDisplay.textContent = `經度: -`;
         }
 
-        init();
+        // --- 主要邏輯 ---
+
+        // 1. 檢查瀏覽器支援
+        if ("geolocation" in navigator) {
+            statusDisplay.textContent = "地理位置服務可用，正在請求您的位置...";
+            
+            // 2. 取得當前位置
+            // 參數：成功回呼函式, 失敗回呼函式, 選項 (可選)
+            navigator.geolocation.getCurrentPosition(
+                handlePosition,
+                handleError
+                // { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 } // 可選配置
+            );
+
+        } else {
+            statusDisplay.textContent = "❌ 您的瀏覽器不支援地理位置服務。";
+            console.log("地理位置服務不可用");
+        }
     </script>
+
 </body>
 </html>
