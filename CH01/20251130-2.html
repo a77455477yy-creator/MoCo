@@ -2,57 +2,69 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>地理位置服務範例</title>
+    <title>純文字地理位置</title>
 </head>
 <body>
-    <h1>網頁地理位置服務 (Geolocation API) 測試</h1>
-    <p>請開啟瀏覽器的開發者工具 (通常按 F12) 並切換到 **Console (主控台)** 頁籤，查看輸出結果。</p>
-    <p>瀏覽器會彈出請求位置權限的視窗，請點擊「允許」才能取得位置資訊。</p>
+
+    <h1>當前地理位置資訊</h1>
+    
+    <p id="status">正在檢查服務支援...</p>
+    
+    <p>緯度 (Latitude): <span id="latitude-value">等待讀取...</span></p>
+    <p>經度 (Longitude): <span id="longitude-value">等待讀取...</span></p>
 
     <script>
-        // 檢查地理位置服務是否可用
-        if ("geolocation" in navigator) {
-            console.log("地理位置服務可用");
+        // 取得 HTML 元素
+        const statusElement = document.getElementById('status');
+        const latElement = document.getElementById('latitude-value');
+        const lonElement = document.getElementById('longitude-value');
 
-            // 取得當前位置
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    console.log("位置取得成功");
-                    handlePosition(position);
-                },
-                (error) => {
-                    console.log("位置取得失敗:", error.message);
-                    // 根據不同的錯誤代碼提供可能的資訊
-                    switch (error.code) {
-                        case error.PERMISSION_DENIED:
-                            console.log("使用者拒絕了地理位置請求 (PERMISSION_DENIED)。");
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            console.log("位置資訊不可用 (POSITION_UNAVAILABLE)。");
-                            break;
-                        case error.TIMEOUT:
-                            console.log("請求使用者位置超時 (TIMEOUT)。");
-                            break;
-                        case error.UNKNOWN_ERROR:
-                            console.log("發生未知錯誤 (UNKNOWN_ERROR)。");
-                            break;
-                    }
-                }
-            );
-        } else {
-            console.log("地理位置服務不可用");
-        }
-
+        /**
+         * 處理位置獲取成功
+         */
         function handlePosition(position) {
             const coords = position.coords;
+            
+            // 顯示緯度
+            latElement.textContent = coords.latitude;
+            
+            // 顯示經度
+            lonElement.textContent = coords.longitude;
 
-            console.log("--- 取得的地理位置資訊 ---");
-            console.log("緯度:", coords.latitude);
-            console.log("經度:", coords.longitude);
-            console.log("準確度 (公尺):", coords.accuracy);
-            console.log("時間戳記:", new Date(position.timestamp));
+            statusElement.textContent = "狀態: 位置讀取成功！";
         }
+
+        /**
+         * 處理位置獲取失敗
+         */
+        function handlePositionError(error) {
+            statusElement.textContent = "狀態: 位置讀取失敗！請檢查權限設定。";
+            latElement.textContent = "無法取得";
+            lonElement.textContent = "無法取得";
+            console.error("錯誤:", error);
+        }
+
+        /**
+         * 檢查瀏覽器支援並取得當前位置
+         */
+        function getGeolocation() {
+            if ("geolocation" in navigator) {
+                statusElement.textContent = "狀態: 地理位置服務可用，正在請求位置...";
+
+                // 取得當前位置 (使用您的基本語法)
+                navigator.geolocation.getCurrentPosition(
+                    handlePosition,  // 成功時
+                    handlePositionError // 失敗時
+                );
+            } else {
+                statusElement.textContent = "狀態: 地理位置服務不可用。";
+                latElement.textContent = "不支援";
+                lonElement.textContent = "不支援";
+            }
+        }
+
+        // 頁面載入後執行
+        getGeolocation();
     </script>
 </body>
 </html>
