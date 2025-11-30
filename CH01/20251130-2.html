@@ -3,55 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>地理位置與感測器測試</title>
+    <title>地理位置服務範例</title>
 </head>
 <body>
-    <h1>地理位置服務測試</h1>
-    <p>請開啟開發者工具 (F12) 的 **Console (主控台)** 頁籤查看輸出結果。</p>
-    
+    <h1>網頁地理位置服務 (Geolocation API) 測試</h1>
+    <p>請開啟瀏覽器的開發者工具 (通常按 F12) 並切換到 **Console (主控台)** 頁籤，查看輸出結果。</p>
+    <p>瀏覽器會彈出請求位置權限的視窗，請點擊「允許」才能取得位置資訊。</p>
+
     <script>
         // 檢查地理位置服務是否可用
         if ("geolocation" in navigator) {
             console.log("地理位置服務可用");
+
+            // 取得當前位置
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log("位置取得成功");
+                    handlePosition(position);
+                },
+                (error) => {
+                    console.log("位置取得失敗:", error.message);
+                    // 根據不同的錯誤代碼提供可能的資訊
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            console.log("使用者拒絕了地理位置請求 (PERMISSION_DENIED)。");
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            console.log("位置資訊不可用 (POSITION_UNAVAILABLE)。");
+                            break;
+                        case error.TIMEOUT:
+                            console.log("請求使用者位置超時 (TIMEOUT)。");
+                            break;
+                        case error.UNKNOWN_ERROR:
+                            console.log("發生未知錯誤 (UNKNOWN_ERROR)。");
+                            break;
+                    }
+                }
+            );
         } else {
             console.log("地理位置服務不可用");
-        }
-
-        // 取得當前位置
-        // 注意：這裡取得位置成功後，會先輸出完整的 position 物件
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                console.log("位置取得成功:", position);
-                // 執行 handlePosition 函式輸出緯度和經度
-                handlePosition(position); 
-            },
-            (error) => {
-                console.log("位置取得失敗:", error);
-            }
-        );
-
-        // 請求感測器權限（部分瀏覽器需要）
-        // 這段程式碼在背景執行，不影響地理位置取得
-        async function requestSensorPermissions() {
-            try {
-                if (navigator.permissions) {
-                    await navigator.permissions.query({ name: 'accelerometer' });
-                    await navigator.permissions.query({ name: 'gyroscope' });
-                }
-            } catch (error) {
-                console.log("權限請求可能不被支援");
-            }
         }
 
         function handlePosition(position) {
             const coords = position.coords;
 
+            console.log("--- 取得的地理位置資訊 ---");
             console.log("緯度:", coords.latitude);
             console.log("經度:", coords.longitude);
+            console.log("準確度 (公尺):", coords.accuracy);
+            console.log("時間戳記:", new Date(position.timestamp));
         }
-
-        // 呼叫感測器權限請求函式
-        requestSensorPermissions();
     </script>
 </body>
 </html>
