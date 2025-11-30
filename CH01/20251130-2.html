@@ -2,20 +2,24 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>純文字地理位置</title>
+    <title>地理位置與權限檢查</title>
 </head>
 <body>
 
-    <h1>當前地理位置資訊</h1>
+    <h1>🌎 當前地理位置資訊</h1>
     
-    <p id="status">正在檢查服務支援...</p>
+    <p>服務狀態: <span id="service-status">正在檢查服務支援...</span></p>
+    <p>權限狀態: <span id="permission-status">正在檢查權限...</span></p>
+    
+    <hr>
     
     <p>緯度 (Latitude): <span id="latitude-value">等待讀取...</span></p>
     <p>經度 (Longitude): <span id="longitude-value">等待讀取...</span></p>
 
     <script>
         // 取得 HTML 元素
-        const statusElement = document.getElementById('status');
+        const serviceStatusElement = document.getElementById('service-status');
+        const permissionStatusElement = document.getElementById('permission-status');
         const latElement = document.getElementById('latitude-value');
         const lonElement = document.getElementById('longitude-value');
 
@@ -25,23 +29,75 @@
         function handlePosition(position) {
             const coords = position.coords;
             
-            // 顯示緯度
             latElement.textContent = coords.latitude;
-            
-            // 顯示經度
             lonElement.textContent = coords.longitude;
 
-            statusElement.textContent = "狀態: 位置讀取成功！";
+            serviceStatusElement.textContent = "✅ 位置讀取成功！";
         }
 
         /**
          * 處理位置獲取失敗
          */
         function handlePositionError(error) {
-            statusElement.textContent = "狀態: 位置讀取失敗！請檢查權限設定。";
+            let errorMessage = "位置讀取失敗。";
+            
+            // 根據錯誤代碼給出具體提示
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    // 如果用戶在彈窗中拒絕，會進入這裡
+                    errorMessage += "使用者拒絕了請求，請檢查「權限狀態」提示。";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage += "位置資訊無法取得 (例如 GPS 訊號差)。";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage += "等待位置資訊超時。";
+                    break;
+                default:
+                    errorMessage += `發生未知錯誤 (代碼: ${error.code})。`;
+            }
+
+            serviceStatusElement.textContent = `❌ ${errorMessage}`;
             latElement.textContent = "無法取得";
             lonElement.textContent = "無法取得";
-            console.error("錯誤:", error);
+            console.error("位置讀取失敗:", error);
+        }
+        
+        /**
+         * 檢查 Geolocation 權限狀態
+         */
+        async function checkPermissionStatus() {
+             // 檢查瀏覽器是否支援新的 Permissions API
+            if (!navigator.permissions) {
+                permissionStatusElement.textContent = "⚠️ 瀏覽器不支援權限檢查 API，直接嘗試獲取位置。";
+                return;
+            }
+
+            try {
+                // 查詢 geolocation 的權限狀態
+                const permission = await navigator.permissions.query({ name: 'geolocation' });
+
+                // 根據狀態更新網頁文字
+                permissionStatusElement.textContent = `狀態: ${permission.state}`;
+
+                // 根據權限狀態給出操作提示
+                if (permission.state === 'granted') {
+                    permissionStatusElement.textContent += " (已允許)";
+                } else if (permission.state === 'denied') {
+                    permissionStatusElement.textContent += " (❌ 已拒絕！請手動在瀏覽器設定中啟用)";
+                } else if (permission.state === 'prompt') {
+                    permissionStatusElement.textContent += " (❗ 需要您的點擊確認)";
+                }
+                
+                // 監聽權限狀態變化 (選用)
+                permission.onchange = () => {
+                    permissionStatusElement.textContent = `狀態已變更為: ${permission.state}`;
+                };
+
+            } catch (e) {
+                permissionStatusElement.textContent = "⚠️ 權限檢查失敗或可能不被支援。";
+                console.error("權限檢查錯誤:", e);
+            }
         }
 
         /**
@@ -49,15 +105,19 @@
          */
         function getGeolocation() {
             if ("geolocation" in navigator) {
-                statusElement.textContent = "狀態: 地理位置服務可用，正在請求位置...";
+                serviceStatusElement.textContent = "👍 地理位置服務可用，正在請求位置...";
+                
+                // 1. 先檢查權限狀態，讓使用者知道問題在哪
+                checkPermissionStatus();
 
-                // 取得當前位置 (使用您的基本語法)
+                // 2. 取得當前位置，這會觸發瀏覽器的彈窗請求
                 navigator.geolocation.getCurrentPosition(
-                    handlePosition,  // 成功時
-                    handlePositionError // 失敗時
+                    handlePosition,  
+                    handlePositionError 
                 );
             } else {
-                statusElement.textContent = "狀態: 地理位置服務不可用。";
+                serviceStatusElement.textContent = "👎 地理位置服務不可用。";
+                permissionStatusElement.textContent = "不適用";
                 latElement.textContent = "不支援";
                 lonElement.textContent = "不支援";
             }
