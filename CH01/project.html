@@ -3,159 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行動通訊期末專案 - 訊號強度模擬</title>
+    <title>真實手機網路資訊讀取</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .phone-frame { width: 320px; background-color: #fff; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; border: 8px solid #333; height: 600px; position: relative; }
-        .header { background-color: #007bff; color: white; padding: 15px; text-align: center; }
-        .header h2 { margin: 0; font-size: 18px; }
-        
-        /* 模擬地圖區 */
-        .map-area { height: 200px; background-color: #e9ecef; position: relative; border-bottom: 1px solid #ccc; }
-        .map-label { position: absolute; font-size: 12px; color: #555; }
-        .user-dot { width: 15px; height: 15px; background-color: red; border-radius: 50%; position: absolute; transition: all 0.5s ease; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-
-        /* 數據顯示區 */
-        .dashboard { padding: 20px; }
-        .signal-box { margin-bottom: 20px; text-align: center; }
-        .signal-value { font-size: 48px; font-weight: bold; color: #333; }
-        .signal-unit { font-size: 16px; color: #666; }
-        
-        .info-table { width: 100%; font-size: 14px; border-collapse: collapse; }
-        .info-table td { padding: 8px; border-bottom: 1px solid #eee; }
-        .info-table td:first-child { color: #888; font-weight: bold; }
-        .info-table td:last-child { text-align: right; color: #333; font-weight: bold; }
-
-        /* 控制按鈕 */
-        .controls { position: absolute; bottom: 0; width: 100%; background: #fff; padding: 10px 0; display: flex; justify-content: space-around; border-top: 1px solid #ddd; }
-        .btn { padding: 8px 12px; border: none; background-color: #e2e6ea; border-radius: 20px; cursor: pointer; font-size: 12px; transition: 0.2s; }
-        .btn:hover, .btn.active { background-color: #007bff; color: white; }
-
-        /* 訊號品質顏色 */
-        .good { color: #28a745; }
-        .fair { color: #ffc107; }
-        .poor { color: #dc3545; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { margin-top: 0; color: #333; font-size: 18px; border-bottom: 2px solid #007bff; padding-bottom: 10px; display: inline-block;}
+        .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .label { color: #666; font-weight: bold; }
+        .value { color: #007bff; font-weight: bold; font-family: monospace; font-size: 1.1em; }
+        .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 50px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .status { font-size: 12px; color: #888; text-align: center; margin-top: 10px; }
+        .warning { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; font-size: 12px; margin-bottom: 15px; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
 
-    <div class="phone-frame">
-        <div class="header">
-            <h2>NetMonitor 模擬器</h2>
-            <p style="font-size: 10px; margin: 0; opacity: 0.8;">期末專案展示</p>
+    <div class="warning">
+        ⚠️ <strong>注意：</strong> 一般瀏覽器基於安全限制，無法讀取 dBm (訊號強度) 與 Cell ID。此網頁展示的是瀏覽器允許讀取的「真實網路連線狀態」。
+    </div>
+
+    <div class="card">
+        <h2>📡 網路連線狀態 (Live)</h2>
+        <div class="data-row">
+            <span class="label">連線類型:</span>
+            <span class="value" id="netType">讀取中...</span>
         </div>
-
-        <div class="map-area">
-            <span class="map-label" style="top: 10px; left: 10px;">🏫 教學大樓</span>
-            <span class="map-label" style="top: 20px; right: 20px;">基地台 (eNB) 📡</span>
-            <div id="userDot" class="user-dot" style="top: 30px; right: 30px;"></div>
-            <div style="position: absolute; top: 80px; left: 50px; width: 200px; height: 10px; background: #ddd; transform: rotate(10deg);"></div>
-            <div style="position: absolute; bottom: 20px; left: 20px; width: 50px; height: 50px; background: #ccc; border-radius: 5px;">電梯</div>
+        <div class="data-row">
+            <span class="label">有效頻寬類型:</span>
+            <span class="value" id="effectType">讀取中...</span>
         </div>
-
-        <div class="dashboard">
-            <div class="signal-box">
-                <div id="rsrpValue" class="signal-value good">-75</div>
-                <div class="signal-unit">RSRP (dBm)</div>
-                <div id="qualityText" style="font-size: 12px; margin-top: 5px; color: #28a745;">訊號極佳</div>
-            </div>
-
-            <table class="info-table">
-                <tr>
-                    <td>電信業者</td>
-                    <td id="operator">中華電信</td>
-                </tr>
-                <tr>
-                    <td>頻段 (Band)</td>
-                    <td id="band">Band 3 (1800MHz)</td>
-                </tr>
-                <tr>
-                    <td>基地台 ID (PCI)</td>
-                    <td id="pci">101</td>
-                </tr>
-                <tr>
-                    <td>網路技術</td>
-                    <td id="tech">4G LTE</td>
-                </tr>
-            </table>
-            
-            <div style="margin-top: 15px; font-size: 12px; color: #666; background: #f8f9fa; padding: 10px; border-radius: 8px;">
-                <strong>分析筆記：</strong>
-                <span id="analysis">目前位置靠近窗戶，為直視波 (Line of Sight)，訊號衰減最小。</span>
-            </div>
+        <div class="data-row">
+            <span class="label">下行速度 (估計):</span>
+            <span class="value" id="downlink">讀取中...</span>
         </div>
-
-        <div class="controls">
-            <button class="btn active" onclick="moveTo(0)">1. 窗邊</button>
-            <button class="btn" onclick="moveTo(1)">2. 走廊</button>
-            <button class="btn" onclick="moveTo(2)">3. 電梯口</button>
+        <div class="data-row">
+            <span class="label">往返延遲 (RTT):</span>
+            <span class="value" id="rtt">讀取中...</span>
         </div>
     </div>
 
+    <div class="card">
+        <h2>📍 你的位置 (GPS)</h2>
+        <div class="data-row">
+            <span class="label">緯度:</span>
+            <span class="value" id="lat">等待授權...</span>
+        </div>
+        <div class="data-row">
+            <span class="label">經度:</span>
+            <span class="value" id="lon">等待授權...</span>
+        </div>
+        <div class="data-row">
+            <span class="label">精確度:</span>
+            <span class="value" id="acc">等待授權...</span>
+        </div>
+        <button class="btn" onclick="getLocation()">🔄 更新 GPS 位置</button>
+        <div class="status" id="geoStatus">請點擊按鈕獲取位置</div>
+    </div>
+
     <script>
-        // 定義三個地點的模擬數據
-        const locations = [
-            {
-                // 地點 1: 窗邊
-                top: '30px', right: '30px',
-                rsrp: -75,
-                qualityClass: 'good',
-                qualityText: '訊號極佳',
-                band: 'Band 3 (1800MHz)',
-                pci: '101',
-                note: '目前位置靠近窗戶，接收到直視波 (Line of Sight)，訊號衰減最小。'
-            },
-            {
-                // 地點 2: 走廊
-                top: '100px', right: '150px',
-                rsrp: -98,
-                qualityClass: 'fair',
-                qualityText: '訊號普通',
-                band: 'Band 3 (1800MHz)',
-                pci: '101',
-                note: '進入室內走廊，因距離增加與牆壁阻隔，發生路徑損耗 (Path Loss)。'
-            },
-            {
-                // 地點 3: 電梯口 (模擬 Handover)
-                top: '150px', right: '250px',
-                rsrp: -112,
-                qualityClass: 'poor',
-                qualityText: '訊號微弱',
-                band: 'Band 28 (700MHz)', // 這裡模擬頻段切換
-                pci: '205', // 這裡模擬切換到另一個基地台
-                note: '遭受嚴重遮蔽效應 (Shadowing)。系統自動執行換手 (Handover) 至低頻段以維持連線。'
+        function updateNetworkInfo() {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            
+            if (connection) {
+                // 1. 網路類型 (例如: cellular, wifi)
+                document.getElementById('netType').innerText = connection.type || '未知';
+                
+                // 2. 有效類型 (例如: 4g, 3g)
+                // 這是你走到訊號差的地方可能會變化的數值
+                document.getElementById('effectType').innerText = connection.effectiveType || '未知';
+                
+                // 3. 下行速度 (Mb/s)
+                document.getElementById('downlink').innerText = (connection.downlink || 0) + ' Mbps';
+                
+                // 4. RTT (延遲毫秒) - 訊號差時這個數值會飆高
+                document.getElementById('rtt').innerText = (connection.rtt || 0) + ' ms';
+            } else {
+                document.getElementById('netType').innerText = "瀏覽器不支援";
             }
-        ];
-
-        function moveTo(index) {
-            const data = locations[index];
-            
-            // 1. 移動地圖上的紅點
-            const dot = document.getElementById('userDot');
-            dot.style.top = data.top;
-            dot.style.right = data.right; // 這裡簡化使用 right 定位
-
-            // 2. 更新 RSRP 數值與顏色
-            const rsrpEl = document.getElementById('rsrpValue');
-            rsrpEl.innerText = data.rsrp;
-            rsrpEl.className = 'signal-value ' + data.qualityClass;
-            
-            const qualityEl = document.getElementById('qualityText');
-            qualityEl.innerText = data.qualityText;
-            qualityEl.style.color = (data.qualityClass === 'good') ? '#28a745' : (data.qualityClass === 'fair') ? '#ffc107' : '#dc3545';
-
-            // 3. 更新基地台資訊
-            document.getElementById('band').innerText = data.band;
-            document.getElementById('pci').innerText = data.pci;
-            
-            // 4. 更新分析筆記 (這是作業重點)
-            document.getElementById('analysis').innerText = data.note;
-
-            // 5. 按鈕樣式更新
-            const btns = document.querySelectorAll('.btn');
-            btns.forEach(b => b.classList.remove('active'));
-            btns[index].classList.add('active');
         }
+
+        // 監聽網路變化：當你從 4G 切到 WiFi，或訊號變差導致 4G 變 3G 時，會自動更新
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection) {
+            connection.addEventListener('change', updateNetworkInfo);
+            updateNetworkInfo(); // 初始化執行一次
+        }
+
+        // GPS 位置獲取
+        function getLocation() {
+            const status = document.getElementById('geoStatus');
+            
+            if (!navigator.geolocation) {
+                status.innerText = "您的瀏覽器不支援地理位置功能";
+                return;
+            }
+
+            status.innerText = "正在定位中...";
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    document.getElementById('lat').innerText = position.coords.latitude.toFixed(5);
+                    document.getElementById('lon').innerText = position.coords.longitude.toFixed(5);
+                    document.getElementById('acc').innerText = "誤差 " + position.coords.accuracy + " 公尺";
+                    status.innerText = "定位成功 (更新時間: " + new Date().toLocaleTimeString() + ")";
+                },
+                (error) => {
+                    status.innerText = "無法獲取位置: " + error.message;
+                },
+                {
+                    enableHighAccuracy: true // 要求高精確度 (使用 GPS 而非僅用基地台定位)
+                }
+            );
+        }
+
+        // 頁面載入時先嘗試讀取一次網路
+        updateNetworkInfo();
     </script>
 </body>
 </html>
