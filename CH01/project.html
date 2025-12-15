@@ -3,121 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>真實手機網路資訊讀取</title>
+    <title>行動網路品質實測</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2 { margin-top: 0; color: #333; font-size: 18px; border-bottom: 2px solid #007bff; padding-bottom: 10px; display: inline-block;}
-        .data-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .label { color: #666; font-weight: bold; }
-        .value { color: #007bff; font-weight: bold; font-family: monospace; font-size: 1.1em; }
-        .btn { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 50px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 10px; }
-        .status { font-size: 12px; color: #888; text-align: center; margin-top: 10px; }
-        .warning { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; font-size: 12px; margin-bottom: 15px; border: 1px solid #ffeeba; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; }
+        
+        /* 訊號燈設計 */
+        .signal-circle {
+            width: 150px; height: 150px;
+            border-radius: 50%;
+            border: 5px solid #333;
+            margin: 30px auto;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .value { font-size: 36px; font-weight: bold; }
+        .unit { font-size: 14px; color: #aaa; }
+        .label { font-size: 16px; margin-bottom: 5px; color: #ccc; }
+
+        /* 顏色狀態 */
+        .status-good { border-color: #00ff00; box-shadow: 0 0 30px #00ff00; color: #00ff00; }
+        .status-fair { border-color: #ffcc00; box-shadow: 0 0 30px #ffcc00; color: #ffcc00; }
+        .status-bad { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; color: #ff0000; }
+
+        /* GPS 區塊 */
+        .gps-box { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: left; font-size: 14px; color: #bbb; border: 1px solid #333; }
+        .btn { background: #007aff; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; margin-top: 20px; cursor: pointer; }
+        .btn:active { opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <div class="warning">
-        ⚠️ <strong>注意：</strong> 一般瀏覽器基於安全限制，無法讀取 dBm (訊號強度) 與 Cell ID。此網頁展示的是瀏覽器允許讀取的「真實網路連線狀態」。
-    </div>
+    <div class="container">
+        <h2>📡 網路品質實測儀</h2>
+        <p style="font-size: 12px; color: #888;">(以連線延遲代替訊號強度)</p>
 
-    <div class="card">
-        <h2>📡 網路連線狀態 (Live)</h2>
-        <div class="data-row">
-            <span class="label">連線類型:</span>
-            <span class="value" id="netType">讀取中...</span>
+        <div id="signalCircle" class="signal-circle">
+            <div class="label">Ping 延遲</div>
+            <div id="pingValue" class="value">--</div>
+            <div class="unit">毫秒 (ms)</div>
         </div>
-        <div class="data-row">
-            <span class="label">有效頻寬類型:</span>
-            <span class="value" id="effectType">讀取中...</span>
-        </div>
-        <div class="data-row">
-            <span class="label">下行速度 (估計):</span>
-            <span class="value" id="downlink">讀取中...</span>
-        </div>
-        <div class="data-row">
-            <span class="label">往返延遲 (RTT):</span>
-            <span class="value" id="rtt">讀取中...</span>
-        </div>
-    </div>
 
-    <div class="card">
-        <h2>📍 你的位置 (GPS)</h2>
-        <div class="data-row">
-            <span class="label">緯度:</span>
-            <span class="value" id="lat">等待授權...</span>
+        <div id="statusText" style="font-weight: bold; margin-bottom: 20px;">準備測試...</div>
+
+        <button class="btn" onclick="startTest()">🚀 開始連續測試</button>
+
+        <div class="gps-box">
+            <div><strong>📍 經度：</strong> <span id="lon">等待中...</span></div>
+            <div><strong>📍 緯度：</strong> <span id="lat">等待中...</span></div>
+            <div><strong>🎯 精確度：</strong> <span id="acc">--</span></div>
+            <div style="margin-top:5px; font-size:10px; color:#666;">(請允許瀏覽器存取位置)</div>
         </div>
-        <div class="data-row">
-            <span class="label">經度:</span>
-            <span class="value" id="lon">等待授權...</span>
-        </div>
-        <div class="data-row">
-            <span class="label">精確度:</span>
-            <span class="value" id="acc">等待授權...</span>
-        </div>
-        <button class="btn" onclick="getLocation()">🔄 更新 GPS 位置</button>
-        <div class="status" id="geoStatus">請點擊按鈕獲取位置</div>
     </div>
 
     <script>
-        function updateNetworkInfo() {
-            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            
-            if (connection) {
-                // 1. 網路類型 (例如: cellular, wifi)
-                document.getElementById('netType').innerText = connection.type || '未知';
-                
-                // 2. 有效類型 (例如: 4g, 3g)
-                // 這是你走到訊號差的地方可能會變化的數值
-                document.getElementById('effectType').innerText = connection.effectiveType || '未知';
-                
-                // 3. 下行速度 (Mb/s)
-                document.getElementById('downlink').innerText = (connection.downlink || 0) + ' Mbps';
-                
-                // 4. RTT (延遲毫秒) - 訊號差時這個數值會飆高
-                document.getElementById('rtt').innerText = (connection.rtt || 0) + ' ms';
-            } else {
-                document.getElementById('netType').innerText = "瀏覽器不支援";
+        // 1. 測量 Ping (網路品質)
+        async function measurePing() {
+            const start = performance.now();
+            try {
+                // 嘗試抓取一個非常小的檔案 (這裡用 Google 的圖示，這是一個標準的網路測試方法)
+                // mode: 'no-cors' 允許我們發送請求即使跨域 (雖然讀不到內容，但可以計算時間)
+                await fetch('https://www.google.com/images/branding/googlelogo/2x/googlelogo_light_color_92x30dp.png', { 
+                    mode: 'no-cors',
+                    cache: 'no-store' 
+                });
+                const end = performance.now();
+                return Math.round(end - start);
+            } catch (e) {
+                return -1; // 連線失敗
             }
         }
 
-        // 監聽網路變化：當你從 4G 切到 WiFi，或訊號變差導致 4G 變 3G 時，會自動更新
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (connection) {
-            connection.addEventListener('change', updateNetworkInfo);
-            updateNetworkInfo(); // 初始化執行一次
-        }
+        // 2. 更新畫面
+        function updateDisplay(ping) {
+            const circle = document.getElementById('signalCircle');
+            const valText = document.getElementById('pingValue');
+            const statusText = document.getElementById('statusText');
 
-        // GPS 位置獲取
-        function getLocation() {
-            const status = document.getElementById('geoStatus');
-            
-            if (!navigator.geolocation) {
-                status.innerText = "您的瀏覽器不支援地理位置功能";
+            if (ping === -1) {
+                valText.innerText = "斷線";
+                circle.className = "signal-circle status-bad";
+                statusText.innerText = "無法連線";
                 return;
             }
 
-            status.innerText = "正在定位中...";
+            valText.innerText = ping;
 
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    document.getElementById('lat').innerText = position.coords.latitude.toFixed(5);
-                    document.getElementById('lon').innerText = position.coords.longitude.toFixed(5);
-                    document.getElementById('acc').innerText = "誤差 " + position.coords.accuracy + " 公尺";
-                    status.innerText = "定位成功 (更新時間: " + new Date().toLocaleTimeString() + ")";
-                },
-                (error) => {
-                    status.innerText = "無法獲取位置: " + error.message;
-                },
-                {
-                    enableHighAccuracy: true // 要求高精確度 (使用 GPS 而非僅用基地台定位)
-                }
-            );
+            // 判斷訊號品質邏輯
+            if (ping < 100) {
+                // 延遲低於 100ms -> 訊號好
+                circle.className = "signal-circle status-good";
+                statusText.innerText = "訊號品質：優異 (4G/5G/WiFi)";
+                statusText.style.color = "#00ff00";
+            } else if (ping < 300) {
+                // 延遲 100-300ms -> 普通
+                circle.className = "signal-circle status-fair";
+                statusText.innerText = "訊號品質：普通";
+                statusText.style.color = "#ffcc00";
+            } else {
+                // 延遲高於 300ms -> 差
+                circle.className = "signal-circle status-bad";
+                statusText.innerText = "訊號品質：差 / 壅塞";
+                statusText.style.color = "#ff0000";
+            }
         }
 
-        // 頁面載入時先嘗試讀取一次網路
-        updateNetworkInfo();
+        // 3. 獲取 GPS
+        function getGPS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        document.getElementById('lat').innerText = position.coords.latitude.toFixed(5);
+                        document.getElementById('lon').innerText = position.coords.longitude.toFixed(5);
+                        document.getElementById('acc').innerText = "誤差 " + Math.round(position.coords.accuracy) + " 公尺";
+                    },
+                    (error) => {
+                        document.getElementById('lat').innerText = "無法獲取";
+                    }
+                );
+            }
+        }
+
+        // 4. 主程式迴圈
+        let isRunning = false;
+        async function startTest() {
+            if (isRunning) return;
+            isRunning = true;
+            document.querySelector('.btn').innerText = "測量中 (移動手機觀察變化)...";
+            
+            // 啟動 GPS
+            getGPS();
+            setInterval(getGPS, 5000); // 每5秒更新一次位置
+
+            // 啟動 Ping 測試 (模擬即時訊號變化)
+            while (true) {
+                const ping = await measurePing();
+                updateDisplay(ping);
+                // 休息 1 秒再測下一次，避免把網路塞爆
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
     </script>
 </body>
 </html>
