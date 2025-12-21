@@ -1,190 +1,36 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>感測器與影音整合測試</title>
-  <style>
-    body { font-family: system-ui, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; line-height: 1.5; }
-    section { border: 1px solid #ccc; padding: 16px; margin-bottom: 20px; border-radius: 8px; }
-    h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-    button { font-size: 16px; padding: 8px 12px; cursor: pointer; margin-bottom: 10px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
-    video { width: 100%; max-width: 480px; background: #000; border-radius: 4px; margin-top: 10px; }
-    .error { color: red; }
-  </style>
+  <meta charset="UTF-8">
+  <title>getUserMedia 最簡範例</title>
 </head>
 <body>
 
-  <h1>硬體功能整合測試</h1>
+<button id="btn">啟用相機與麥克風</button>
+<br><br>
 
-  <section>
-    <h2>1. 磁力計 (Magnetometer)</h2>
-    <button id="btn_mag">開始讀取磁力計</button>
-    <pre id="out_mag">尚未開始</pre>
-  </section>
+<video id="video" autoplay playsinline></video>
 
-  <section>
-    <h2>2. 環境光感測器 (Ambient Light)</h2>
-    <button id="btn_als">開始讀取環境光</button>
-    <p id="out_als" style="font-weight:bold; color:blue;">尚未開始</p>
-  </section>
+<script>
+  const btn = document.getElementById('btn');
+  const video = document.getElementById('video');
 
-  <section>
-    <h2>3. 攝影機與麥克風 (Camera & Mic)</h2>
-    <button id="btn_cam">啟用相機與麥克風</button>
-    <br>
-    <video id="video_cam" autoplay playsinline muted controls></video>
-  </section>
-
-  <script>
-    // --- 全域工具：顯示訊息 ---
-    function setStatus(elementId, msg, isError = false) {
-      const el = document.getElementById(elementId);
-      if (el) {
-        el.textContent = msg;
-        if (isError) el.style.color = 'red';
-        else el.style.color = 'inherit';
-      }
-    }
-
-    // ==========================================
-    // 1. Magnetometer 邏輯
-    // ==========================================
-    const btnMag = document.getElementById('btn_mag');
-    
-    async function startMagnetometer() {
-      // 環境檢查
-      if (!window.isSecureContext) {
-        setStatus('out_mag', '錯誤：必須在安全環境 (HTTPS) 才能使用 Magnetometer。', true);
-        return;
-      }
-      if (!('Magnetometer' in window)) {
-        setStatus('out_mag', '此瀏覽器不支援 Magnetometer (Generic Sensor API)。', true);
-        return;
-      }
-
-      // 權限檢查
-      if ('permissions' in navigator && navigator.permissions.query) {
-        try {
-          const status = await navigator.permissions.query({ name: 'magnetometer' });
-          if (status.state === 'denied') {
-            setStatus('out_mag', '使用者已拒絕 magnetometer 權限。', true);
-            return;
-          }
-        } catch (e) { /* 忽略不支援的查詢 */ }
-      }
-
-      // 建立感測器
-      let sensor;
-      try {
-        sensor = new Magnetometer({ frequency: 10 });
-      } catch (e) {
-        setStatus('out_mag', '建立 Magnetometer 失敗：' + (e.name || e), true);
-        return;
-      }
-
-      // 監聽數據
-      sensor.addEventListener('reading', () => {
-        setStatus('out_mag', 
-          `Magnetometer reading\n` +
-          `x: ${sensor.x ? sensor.x.toFixed(2) : 'null'}\n` +
-          `y: ${sensor.y ? sensor.y.toFixed(2) : 'null'}\n` +
-          `z: ${sensor.z ? sensor.z.toFixed(2) : 'null'}\n` +
-          `timestamp: ${sensor.timestamp}`
-        );
+  btn.onclick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
       });
 
-      // 監聽錯誤
-      sensor.addEventListener('error', (event) => {
-        setStatus('out_mag', '感測器錯誤：' + (event.error.name || event.error), true);
-      });
+      video.srcObject = stream;
 
-      // 啟動
-      try {
-        sensor.start();
-        setStatus('out_mag', '已啟動 (等待數據...)');
-      } catch (e) {
-        setStatus('out_mag', 'start() 失敗：' + (e.name || e), true);
-      }
+    } catch (err) {
+      console.error(err);
+      alert('無法取得相機或麥克風權限');
     }
+  };
+</script>
 
-    btnMag.addEventListener('click', async () => {
-      btnMag.disabled = true;
-      await startMagnetometer();
-    });
-
-
-    // ==========================================
-    // 2. Ambient Light 邏輯
-    // ==========================================
-    const btnAls = document.getElementById("btn_als");
-    const outAls = document.getElementById("out_als");
-
-    btnAls.onclick = async () => {
-      btnAls.disabled = true; // 防止重複點擊
-      try {
-        // 檢查 API
-        if (!("AmbientLightSensor" in window)) {
-          outAls.textContent = "此瀏覽器不支援 AmbientLightSensor";
-          return;
-        }
-
-        // 查詢權限
-        if ("permissions" in navigator) {
-          try {
-            const permission = await navigator.permissions.query({ name: "ambient-light-sensor" });
-            if (permission.state === "denied") {
-              outAls.textContent = "使用者拒絕環境光感測器權限";
-              return;
-            }
-          } catch(e) { /* 忽略 */ }
-        }
-
-        // 建立感測器
-        const sensor = new AmbientLightSensor();
-
-        sensor.onreading = () => {
-          outAls.textContent = `環境光亮度：${sensor.illuminance} lux`;
-        };
-
-        sensor.onerror = (event) => {
-          outAls.textContent = "感測器錯誤：" + event.error.name;
-          outAls.style.color = 'red';
-        };
-
-        sensor.start();
-        outAls.textContent = "已啟動 (請遮擋光線測試)";
-
-      } catch (err) {
-        outAls.textContent = "發生錯誤：" + err.message;
-        outAls.style.color = 'red';
-      }
-    };
-
-
-    // ==========================================
-    // 3. getUserMedia 邏輯
-    // ==========================================
-    const btnCam = document.getElementById('btn_cam');
-    const videoCam = document.getElementById('video_cam');
-
-    btnCam.onclick = async () => {
-      btnCam.disabled = true;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-
-        videoCam.srcObject = stream;
-        
-      } catch (err) {
-        console.error(err);
-        alert('無法取得相機或麥克風權限: ' + err.message);
-        btnCam.disabled = false; // 失敗允許重試
-      }
-    };
-  </script>
 </body>
 </html>
