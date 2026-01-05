@@ -1,167 +1,487 @@
 <!DOCTYPE html>
+
 <html lang="zh-TW">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行動網路品質實測 (可停止版)</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; text-align: center; }
-        .container { max-width: 400px; margin: 0 auto; }
-        
-        .signal-circle {
-            width: 150px; height: 150px;
-            border-radius: 50%;
-            border: 5px solid #444; /* 預設灰色 */
-            margin: 30px auto;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .value { font-size: 36px; font-weight: bold; }
-        .unit { font-size: 14px; color: #aaa; }
-        .label { font-size: 16px; margin-bottom: 5px; color: #ccc; }
 
-        .status-good { border-color: #00ff00; box-shadow: 0 0 30px #00ff00; color: #00ff00; }
-        .status-fair { border-color: #ffcc00; box-shadow: 0 0 30px #ffcc00; color: #ffcc00; }
-        .status-bad { border-color: #ff0000; box-shadow: 0 0 30px #ff0000; color: #ff0000; }
-        .status-off { border-color: #444; color: #666; box-shadow: none;}
+    <meta charset="UTF-8">
 
-        .gps-box { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: left; font-size: 14px; color: #bbb; border: 1px solid #333; }
-        
-        /* 按鈕樣式優化 */
-        .btn { border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 80%; transition: 0.3s; }
-        .btn-start { background: #007aff; color: white; }
-        .btn-stop { background: #ff3b30; color: white; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>跨國遊戲 Ping 測試 (含 API 地址查詢)</title>
+
+    <style>
+
+        body { 
+
+            background-color: #121212; 
+
+            color: #ffffff; 
+
+            font-family: "微軟正黑體", sans-serif; 
+
+            padding: 20px; 
+
+            text-align: center;
+
+            max-width: 600px;
+
+            margin: 0 auto;
+
+        }
+
+        
+
+        .server-item { 
+
+            background: #1e1e1e;
+
+            border: 1px solid #333; 
+
+            margin: 10px 0; 
+
+            padding: 15px; 
+
+            border-radius: 8px; 
+
+            font-size: 16px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+        }
+
+
+
+        .ping-result { color: #bb86fc; font-weight: bold; }
+
+
+
+        /* 狀態資訊區塊 */
+
+        .status-box {
+
+            background-color: #2c2c2c;
+
+            padding: 15px;
+
+            border-radius: 8px;
+
+            margin-bottom: 20px;
+
+            text-align: left;
+
+            font-size: 14px;
+
+            border: 1px solid #444;
+
+        }
+
+        .status-box p { margin: 5px 0; }
+
+        .highlight { color: #03dac6; font-weight: bold; }
+
+
+
+        #locationNote {
+
+            width: 100%;
+
+            padding: 15px;
+
+            font-size: 16px;
+
+            margin-bottom: 15px;
+
+            background-color: #1e1e1e;
+
+            color: #fff;
+
+            border: 1px solid #555;
+
+            border-radius: 5px;
+
+            box-sizing: border-box; 
+
+        }
+
+        #locationNote::placeholder { color: #888; }
+
+
+
+        button { 
+
+            width: 100%; 
+
+            padding: 15px; 
+
+            font-size: 18px; 
+
+            background-color: #3700b3; 
+
+            color: white; 
+
+            border: none; 
+
+            border-radius: 5px;
+
+            margin-bottom: 20px;
+
+            cursor: pointer;
+
+            transition: background 0.3s;
+
+        }
+
+        button:hover { background-color: #5600e8; }
+
+        button:disabled { background-color: #555; cursor: not-allowed; }
+
+
+
+        #jsonBox {
+
+            width: 100%; height: 200px; 
+
+            background: #000; color: #00ff00;
+
+            border: 1px solid #555; 
+
+            font-family: monospace;
+
+            text-align: left;
+
+            padding: 10px;
+
+            box-sizing: border-box; 
+
+            overflow-y: scroll;
+
+            font-size: 12px;
+
+        }
+
+    </style>
+
 </head>
+
 <body>
 
-    <div class="container">
-        <h2>📡 網路品質實測儀</h2>
-        <p style="font-size: 12px; color: #888;">(以連線延遲代替訊號強度)</p>
 
-        <div id="signalCircle" class="signal-circle status-off">
-            <div class="label">Ping 延遲</div>
-            <div id="pingValue" class="value">--</div>
-            <div class="unit">毫秒 (ms)</div>
-        </div>
 
-        <div id="statusText" style="font-weight: bold; margin-bottom: 20px; color: #888;">請點擊開始測試</div>
+    <h2>🌏 訊號與 Ping 實測 (API 作業版)</h2>
 
-        <button id="actionBtn" class="btn btn-start" onclick="toggleTest()">🚀 開始測試</button>
+    
 
-        <div class="gps-box">
-            <div><strong>📍 經度：</strong> <span id="lon">--</span></div>
-            <div><strong>📍 緯度：</strong> <span id="lat">--</span></div>
-            <div><strong>🎯 精確度：</strong> <span id="acc">--</span></div>
-        </div>
-    </div>
+    <div class="status-box">
 
-    <script>
-        let isRunning = false;
-        let gpsInterval = null;
+        <p>📡 經緯度: <span id="gpsInfo" class="highlight">等待啟動...</span></p>
 
-        // 1. 測量 Ping
-        async function measurePing() {
-            const start = performance.now();
-            try {
-                await fetch('https://www.google.com/images/branding/googlelogo/2x/googlelogo_light_color_92x30dp.png', { 
-                    mode: 'no-cors', cache: 'no-store' 
-                });
-                return Math.round(performance.now() - start);
-            } catch (e) { return -1; }
-        }
+        <p>📍 API 地址: <span id="addressInfo" class="highlight">等待查詢...</span></p>
 
-        // 2. 更新畫面
-        function updateDisplay(ping) {
-            const circle = document.getElementById('signalCircle');
-            const valText = document.getElementById('pingValue');
-            const statusText = document.getElementById('statusText');
+    </div>
 
-            if (!isRunning) return; // 如果已經停止，就不要更新畫面了
 
-            if (ping === -1) {
-                valText.innerText = "斷線";
-                circle.className = "signal-circle status-bad";
-                statusText.innerText = "無法連線";
-                return;
-            }
 
-            valText.innerText = ping;
+    <input type="text" id="locationNote" placeholder="備註 (例如: 學校圖書館 / 5G訊號)...">
 
-            if (ping < 100) {
-                circle.className = "signal-circle status-good";
-                statusText.innerText = "訊號品質：優異";
-                statusText.style.color = "#00ff00";
-            } else if (ping < 300) {
-                circle.className = "signal-circle status-fair";
-                statusText.innerText = "訊號品質：普通";
-                statusText.style.color = "#ffcc00";
-            } else {
-                circle.className = "signal-circle status-bad";
-                statusText.innerText = "訊號品質：差 / 壅塞";
-                statusText.style.color = "#ff0000";
-            }
-        }
 
-        // 3. 獲取 GPS
-        function getGPS() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        document.getElementById('lat').innerText = position.coords.latitude.toFixed(5);
-                        document.getElementById('lon').innerText = position.coords.longitude.toFixed(5);
-                        document.getElementById('acc').innerText = "誤差 " + Math.round(position.coords.accuracy) + "m";
-                    },
-                    (error) => { console.log("GPS Error"); }
-                );
-            }
-        }
 
-        // 4. 開關控制邏輯 (核心修改)
-        async function toggleTest() {
-            const btn = document.getElementById('actionBtn');
-            const circle = document.getElementById('signalCircle');
-            const statusText = document.getElementById('statusText');
+    <button id="btnStart" onclick="app.start()">🚀 開始測試</button>
 
-            if (isRunning) {
-                // === 執行停止 ===
-                isRunning = false;
-                btn.innerText = "🚀 開始測試";
-                btn.className = "btn btn-start";
-                
-                // 停止 GPS 更新
-                clearInterval(gpsInterval);
-                
-                // 恢復待機畫面
-                circle.className = "signal-circle status-off";
-                statusText.innerText = "已停止測試";
-                statusText.style.color = "#888";
-                document.getElementById('pingValue').innerText = "--";
 
-            } else {
-                // === 執行開始 ===
-                isRunning = true;
-                btn.innerText = "🛑 停止測試";
-                btn.className = "btn btn-stop";
-                statusText.innerText = "連線初始化中...";
-                
-                // 啟動 GPS
-                getGPS();
-                gpsInterval = setInterval(getGPS, 5000);
 
-                // 啟動 Ping 迴圈
-                while (isRunning) {
-                    const ping = await measurePing();
-                    if(isRunning) { // 再次檢查確保沒有在等待時被按停止
-                        updateDisplay(ping);
-                        await new Promise(r => setTimeout(r, 1000)); // 等一秒
-                    }
-                }
-            }
-        }
-    </script>
+    <div id="list">
+
+        <div class="server-item">🇹🇼 台灣 (TW) <span id="res-tw" class="ping-result">-- ms</span></div>
+
+        <div class="server-item">🇯🇵 日本 (JP) <span id="res-jp" class="ping-result">-- ms</span></div>
+
+        <div class="server-item">🇰🇷 韓國 (KR) <span id="res-kr" class="ping-result">-- ms</span></div>
+
+        <div class="server-item">🇸🇬 新加坡 (SG) <span id="res-sg" class="ping-result">-- ms</span></div>
+
+        <div class="server-item">🇺🇸 美國 (US) <span id="res-us" class="ping-result">-- ms</span></div>
+
+    </div>
+
+
+
+    <h3>📊 測試報告 (JSON)</h3>
+
+    <div id="jsonBox">等待開始...</div>
+
+
+
+    <script>
+
+        'use strict';
+
+
+
+        const app = {
+
+            records: [],
+
+            servers: [
+
+                { id: 'tw', url: 'https://www.hinet.net' },
+
+                { id: 'jp', url: 'https://hnd-jp-ping.vultr.com' },
+
+                { id: 'kr', url: 'https://sel-kor-ping.vultr.com' },
+
+                { id: 'sg', url: 'https://sgp-ping.vultr.com' },
+
+                { id: 'us', url: 'https://lax-ca-us-ping.vultr.com' }
+
+            ],
+
+
+
+            start: function() {
+
+                // UI 鎖定
+
+                document.getElementById('btnStart').disabled = true;
+
+                document.getElementById('btnStart').innerText = "🛰️ 正在定位...";
+
+                document.getElementById('gpsInfo').innerText = "定位中...";
+
+                document.getElementById('addressInfo').innerText = "準備查詢...";
+
+
+
+                // 步驟 1: 取得 GPS
+
+                this.getGPS().then(pos => {
+
+                    // 步驟 2: 拿到 GPS 後，開始跑測試流程
+
+                    this.runTest(pos.lat, pos.lon);
+
+                });
+
+            },
+
+
+
+            // 功能 1: 取得瀏覽器 GPS
+
+            getGPS: function() {
+
+                return new Promise((resolve) => {
+
+                    if (!navigator.geolocation) {
+
+                        alert("你的瀏覽器不支援定位");
+
+                        resolve({ lat: 0, lon: 0 });
+
+                        return;
+
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+
+                        (position) => {
+
+                            let lat = position.coords.latitude; // 為了 API 精準度，先不取小數點
+
+                            let lon = position.coords.longitude;
+
+                            
+
+                            // 顯示在畫面上 (取小數點後 5 位比較美觀)
+
+                            document.getElementById('gpsInfo').innerText = lat.toFixed(5) + ", " + lon.toFixed(5);
+
+                            resolve({ lat: lat, lon: lon });
+
+                        },
+
+                        (error) => {
+
+                            console.error("GPS Error:", error);
+
+                            document.getElementById('gpsInfo').innerText = "定位失敗";
+
+                            resolve({ lat: 0, lon: 0 }); // 失敗還是繼續跑，只是座標是 0,0
+
+                        },
+
+                        { timeout: 5000, enableHighAccuracy: true } 
+
+                    );
+
+                });
+
+            },
+
+
+
+            // 功能 2: 串接 OpenStreetMap API 查地址 (本次作業核心)
+
+            getAddress: async function(lat, lon) {
+
+                if (lat === 0 && lon === 0) return "無法定位，略過查詢";
+
+
+
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=zh-TW`;
+
+                
+
+                try {
+
+                    const response = await fetch(url); // 發送請求
+
+                    const data = await response.json(); // 解析 JSON
+
+                    return data.display_name; // 回傳地址字串
+
+                } catch (error) {
+
+                    console.error("API Error:", error);
+
+                    return "API 查詢失敗 (可能是網路問題)";
+
+                }
+
+            },
+
+
+
+            // 主流程
+
+            runTest: async function(lat, lon) {
+
+                // --- 階段一：呼叫 API 查地址 ---
+
+                document.getElementById('btnStart').innerText = "🔍 正在查詢地址 API...";
+
+                
+
+                // 呼叫上面的 getAddress 函式
+
+                let addressResult = await this.getAddress(lat, lon);
+
+                
+
+                // 更新 UI 顯示地址
+
+                document.getElementById('addressInfo').innerText = addressResult;
+
+                
+
+                // 自動把地址填入備註欄 (如果使用者沒填寫)
+
+                let noteInput = document.getElementById('locationNote');
+
+                if (noteInput.value.trim() === "") {
+
+                    noteInput.value = addressResult; 
+
+                }
+
+
+
+                // --- 階段二：Ping 測速 ---
+
+                document.getElementById('btnStart').innerText = "⚡ 測速中...";
+
+                let userNote = noteInput.value.trim();
+
+
+
+                // 建立報告物件
+
+                let report = {
+
+                    time: new Date().toLocaleString(),
+
+                    location: { lat: lat, lon: lon },
+
+                    address_from_api: addressResult, // 老師要看的 API 結果
+
+                    user_note: userNote,
+
+                    pings: {}
+
+                };
+
+
+
+                // 逐一測試伺服器
+
+                for (let server of this.servers) {
+
+                    document.getElementById('res-' + server.id).innerText = "...";
+
+                    let ms = await this.ping(server.url);
+
+                    document.getElementById('res-' + server.id).innerText = ms + " ms";
+
+                    report.pings[server.id] = ms;
+
+                }
+
+
+
+                // --- 階段三：完成與儲存 ---
+
+                this.records.push(report);
+
+                
+
+                // 更新 JSON 顯示區
+
+                document.getElementById('jsonBox').innerText = JSON.stringify(this.records, null, 2);
+
+
+
+                document.getElementById('btnStart').disabled = false;
+
+                document.getElementById('btnStart').innerText = "🚀 再次測試";
+
+            },
+
+
+
+            // 測速核心功能
+
+            ping: async function(url) {
+
+                let startTime = Date.now();
+
+                try {
+
+                    await fetch(url + '?t=' + startTime, { 
+
+                        mode: 'no-cors', 
+
+                        cache: 'no-store' 
+
+                    });
+
+                    return Date.now() - startTime;
+
+                } catch (error) {
+
+                    return -1;
+
+                }
+
+            }
+
+        };
+
+    </script>
+
 </body>
+
 </html>
