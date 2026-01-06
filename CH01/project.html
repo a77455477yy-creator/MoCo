@@ -299,17 +299,17 @@
                             resolve({ lat: lat, lon: lon });
 
                         },
-
+                        // 當GPS抓取失敗的流程
                         (error) => {
 
                             console.error("GPS Error:", error);
 
                             document.getElementById('gpsInfo').innerText = "定位失敗";
-
-                            resolve({ lat: 0, lon: 0 }); // 抓取失敗，還是繼續跑，只是座標顯示0,0
+                            // 抓取失敗，還是繼續跑，只是座標顯示0,0
+                            resolve({ lat: 0, lon: 0 }); 
 
                         },
-
+                        // 當GPS抓取資料超過5秒沒反應，進入失敗的流程
                         { timeout: 5000, enableHighAccuracy: true } 
 
                     );
@@ -321,23 +321,24 @@
 
 
             // 核心功能: 串接 OpenStreetMap API 查地址，將getGPS取得座標轉為地址
+            // 使用async，因為需要等待OpenStreetMap 的伺服器回傳
             getAddress: async function(lat, lon) {
-
+                // 前面的經緯度若被定義為0，則直接回傳無法定位，略過查詢
                 if (lat === 0 && lon === 0) return "無法定位，略過查詢";
 
 
-
+                // API的請求網址
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=zh-TW`;
 
                 
 
                 try {
-
-                    const response = await fetch(url); // 發送請求
-
+                    // 要求去指定之url抓取資料，且等待伺服器回應後存到response
+                    const response = await fetch(url); 
+                    // 讀取完整的response(JSON)內容，因為讀取並解析需要等待，使用await
                     const data = await response.json(); // 解析 JSON
-
-                    return data.display_name; // 回傳地址字串
+                    // 解析JSON資料後，回傳地址字串
+                    return data.display_name; 
 
                 } catch (error) {
 
@@ -352,7 +353,6 @@
 
 
             // 主要的流程
-
             runTest: async function(lat, lon) {
 
                 // --- 階段一：呼叫 API 查地址 ---
