@@ -216,15 +216,15 @@
 
 
     <script>
-
+        // 啟動嚴格模式
         'use strict';
 
 
-
+        // 定義app物件(records、servers、start: function、getGPS、getAddress、runTest、ping)
         const app = {
-
+            // 儲存歷史紀錄的陣列
             records: [],
-
+            // 測速的目標清單
             servers: [
 
                 { id: 'tw', url: 'https://www.hinet.net' },
@@ -240,7 +240,7 @@
             ],
 
 
-
+                // 啟動的總開關
                 start: function() {
 
                 // 按鈕鎖定功能，避免重複觸發，並將文字改顯示為正在定位...
@@ -265,7 +265,7 @@
 
 
 
-            // 核心功能1: 取得瀏覽器 GPS
+            // 核心功能: 抓取 GPS
             getGPS: function() {
 
                 return new Promise((resolve) => {
@@ -317,7 +317,7 @@
 
 
 
-            // 核心功能2: 串接 OpenStreetMap API 查地址，將功能1取得的數字藉由OpenStreetMap 的伺服器，回傳對應地址
+            // 核心功能: 串接 OpenStreetMap API 查地址，將getGPS取得座標轉為地址
             getAddress: async function(lat, lon) {
 
                 if (lat === 0 && lon === 0) return "無法定位，略過查詢";
@@ -348,7 +348,7 @@
 
 
 
-            // 主流程
+            // 主要的流程
 
             runTest: async function(lat, lon) {
 
@@ -444,7 +444,7 @@
 
 
 
-            // 測速核心功能
+            // 測速功能
 
             ping: async function(url) {
 
