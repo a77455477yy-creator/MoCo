@@ -248,9 +248,7 @@
                 // 按鈕鎖定功能，避免重複觸發，並將文字改顯示為正在定位...
                 document.getElementById('btnStart').disabled = true;
                 document.getElementById('btnStart').innerText = "正在定位...";
-
                 document.getElementById('gpsInfo').innerText = "定位中...";
-
                 document.getElementById('addressInfo').innerText = "準備查詢...";
 
 
@@ -270,7 +268,7 @@
             // 核心功能: 抓取 GPS
             getGPS: function() {
                 // 因抓GPS需要一些時間，先建立承諾(Promise)，讓程式繼續執行
-                // 如果沒有先建立承諾，系統會直接抓空，且不會再重抓
+                // 如果沒有先建立承諾，系統會直接抓空，要設定承諾的條件完成後，系統再抓座標才抓得出來
                 return new Promise((resolve) => {
                     // 先檢查是否有支援定位功能
                     // 如果不存在navigator.geolocation則執行，會跳出不支援訊息並回報resolve為lat: 0, lon: 0後結束
@@ -279,7 +277,7 @@
                         alert("你的瀏覽器不支援定位");
 
                         resolve({ lat: 0, lon: 0 });
-
+                        // 該return為停下所有動作
                         return;
 
                     }
@@ -297,7 +295,7 @@
                             // 把抓到的數字，顯示在網頁上
                             // 把document的id=gpsInfo的字串，修改為緯度+經度(小數點後第5位)
                             document.getElementById('gpsInfo').innerText = lat.toFixed(5) + ", " + lon.toFixed(5);
-
+                            // 承諾完成的信號，並將內部的lat及lon傳遞外部
                             resolve({ lat: lat, lon: lon });
 
                         },
