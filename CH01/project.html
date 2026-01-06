@@ -267,7 +267,8 @@
 
             // 核心功能: 抓取 GPS
             getGPS: function() {
-
+                // 因抓GPS需要一些時間，先建立承諾(resolve)，讓程式繼續執行
+                // 如果沒有先建立承諾，系統會直接抓空，且不會再重抓
                 return new Promise((resolve) => {
 
                     if (!navigator.geolocation) {
