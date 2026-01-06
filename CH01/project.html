@@ -178,7 +178,9 @@
     <div class="status-box">
       
         <!-- id="..."是給JavaScript待抓到資料後，替換抓到的資料 -->
+        <!-- 經緯度的id為gpsInfo，後面的流程會有搜尋id做替換的動作 -->
         <p>經緯度: <span id="gpsInfo" class="highlight">等待啟動...</span></p>
+        <!-- API 地址的id為addressInfo，後面的流程會有搜尋id做替換的動作 -->
         <p>API 地址: <span id="addressInfo" class="highlight">等待查詢...</span></p>
 
     </div>
@@ -293,6 +295,7 @@
                             
 
                             // 把抓到的數字，顯示在網頁上
+                            // 把document的id=gpsInfo的字串，修改為緯度+經度(小數點後第5位)
                             document.getElementById('gpsInfo').innerText = lat.toFixed(5) + ", " + lon.toFixed(5);
 
                             resolve({ lat: lat, lon: lon });
