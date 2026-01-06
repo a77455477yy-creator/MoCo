@@ -270,7 +270,8 @@
                 // 因抓GPS需要一些時間，先建立承諾(resolve)，讓程式繼續執行
                 // 如果沒有先建立承諾，系統會直接抓空，且不會再重抓
                 return new Promise((resolve) => {
-
+                    // 先檢查是否有支援定位功能
+                    // 如果不存在navigator.geolocation則執行，會跳出不支援訊息並回報resolve為lat: 0, lon: 0後結束
                     if (!navigator.geolocation) {
 
                         alert("你的瀏覽器不支援定位");
@@ -280,13 +281,13 @@
                         return;
 
                     }
-
+                    // 呼叫手機GPS的指令
                     navigator.geolocation.getCurrentPosition(
-
+                        // 當GPS抓取成功後自動生成position物件，內包含緯度(position.coords.latitude)、經度(position.coords.longitude)
                         (position) => {
-
+                            // 將position物件內的lat存進lat(緯度)
                             let lat = position.coords.latitude; 
-
+                            // 將position物件內的lon存進lon(經度)
                             let lon = position.coords.longitude;
 
                             
