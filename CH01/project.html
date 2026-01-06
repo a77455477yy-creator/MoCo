@@ -337,7 +337,7 @@
                     const response = await fetch(url); 
                     // 讀取完整的response(JSON)內容，因為讀取並解析需要等待，使用await
                     const data = await response.json(); // 解析 JSON
-                    // 解析JSON資料後，回傳地址字串
+                    // 解析JSON資料後，回傳地址字串給getAddress
                     return data.display_name; 
 
                 } catch (error) {
@@ -352,28 +352,25 @@
 
 
 
-            // 主要的流程
+            // 主要的流程，藉由傳遞的經緯度參數去跑
             runTest: async function(lat, lon) {
 
-                // --- 階段一：呼叫 API 查地址 ---
-
+                // 將Id為btnStart的按鈕字串，修改為正在查詢地址 API...
                 document.getElementById('btnStart').innerText = "正在查詢地址 API...";
 
                 
 
-                // 呼叫上面的 getAddress 函式
-
+                // 將getAddress回傳的地址字串，賦予addressResult
                 let addressResult = await this.getAddress(lat, lon);
 
                 
 
-                // 更新 UI 顯示地址
-
+                // 將Id為addressInfo的字串，修改為addressResult(即地址字串)
                 document.getElementById('addressInfo').innerText = addressResult;
 
                 
 
-                // 自動把地址填入備註欄 (如果使用者沒填寫)
+                // 自動把地址填入備註欄 (如果沒填寫的話)
 
                 let noteInput = document.getElementById('locationNote');
 
@@ -385,8 +382,7 @@
 
 
 
-                // --- 階段二：Ping 測速 ---
-
+                // 將Id為btnStart的按鈕字串，修改為測速中...
                 document.getElementById('btnStart').innerText = "測速中...";
 
                 let userNote = noteInput.value.trim();
@@ -394,14 +390,13 @@
 
 
                 // 建立報告物件
-
                 let report = {
 
                     time: new Date().toLocaleString(),
 
                     location: { lat: lat, lon: lon },
 
-                    address_from_api: addressResult, // 老師要看的 API 結果
+                    address_from_api: addressResult, 
 
                     user_note: userNote,
 
@@ -412,7 +407,6 @@
 
 
                 // 逐一測試伺服器
-
                 for (let server of this.servers) {
 
                     document.getElementById('res-' + server.id).innerText = "...";
@@ -427,14 +421,12 @@
 
 
 
-                // --- 階段三：完成與儲存 ---
-
+                // 將建立的報告物件存為record
                 this.records.push(report);
 
                 
 
                 // 更新 JSON 顯示區
-
                 document.getElementById('jsonBox').innerText = JSON.stringify(this.records, null, 2);
 
 
@@ -447,8 +439,7 @@
 
 
 
-            // 測速功能
-
+            // 測速功能，計算從發出至收到回應經過多少毫秒
             ping: async function(url) {
 
                 let startTime = Date.now();
