@@ -10,9 +10,8 @@
 
     <title>行動通訊專題-延遲測試</title>
   
-      //美化樣式CSS由AI製作
-  
-      <style>
+      <!-- 美化樣式由AI製作 -->
+        <style>
         body { 
 
             background-color: #121212; 
@@ -61,7 +60,6 @@
 
 
 
-        /* 狀態資訊區塊 */
 
         .status-box {
 
@@ -255,12 +253,10 @@
 
 
 
-                // 步驟 1: 取得 GPS
-
+                // 呼叫 getGPS功能
                 this.getGPS().then(pos => {
 
-                    // 步驟 2: 拿到 GPS 後，開始跑測試流程
-
+                    // 拿到 GPS 後，再呼叫runTest開始跑測試流程
                     this.runTest(pos.lat, pos.lon);
 
                 });
@@ -269,8 +265,7 @@
 
 
 
-            // 功能 1: 取得瀏覽器 GPS
-
+            // 核心功能1: 取得瀏覽器 GPS
             getGPS: function() {
 
                 return new Promise((resolve) => {
@@ -289,14 +284,13 @@
 
                         (position) => {
 
-                            let lat = position.coords.latitude; // 為了 API 精準度，先不取小數點
+                            let lat = position.coords.latitude; 
 
                             let lon = position.coords.longitude;
 
                             
 
-                            // 顯示在畫面上 (取小數點後 5 位比較美觀)
-
+                            // 把抓到的數字，顯示在網頁上
                             document.getElementById('gpsInfo').innerText = lat.toFixed(5) + ", " + lon.toFixed(5);
 
                             resolve({ lat: lat, lon: lon });
@@ -309,7 +303,7 @@
 
                             document.getElementById('gpsInfo').innerText = "定位失敗";
 
-                            resolve({ lat: 0, lon: 0 }); // 失敗還是繼續跑，只是座標是 0,0
+                            resolve({ lat: 0, lon: 0 }); // 抓取失敗，還是繼續跑，只是座標顯示0,0
 
                         },
 
@@ -323,8 +317,7 @@
 
 
 
-            // 功能 2: 串接 OpenStreetMap API 查地址 (本次作業核心)
-
+            // 核心功能2: 串接 OpenStreetMap API 查地址，將功能1取得的數字藉由OpenStreetMap 的伺服器，回傳對應地址
             getAddress: async function(lat, lon) {
 
                 if (lat === 0 && lon === 0) return "無法定位，略過查詢";
@@ -361,7 +354,7 @@
 
                 // --- 階段一：呼叫 API 查地址 ---
 
-                document.getElementById('btnStart').innerText = "🔍 正在查詢地址 API...";
+                document.getElementById('btnStart').innerText = "正在查詢地址 API...";
 
                 
 
@@ -391,7 +384,7 @@
 
                 // --- 階段二：Ping 測速 ---
 
-                document.getElementById('btnStart').innerText = "⚡ 測速中...";
+                document.getElementById('btnStart').innerText = "測速中...";
 
                 let userNote = noteInput.value.trim();
 
@@ -445,7 +438,7 @@
 
                 document.getElementById('btnStart').disabled = false;
 
-                document.getElementById('btnStart').innerText = "🚀 再次測試";
+                document.getElementById('btnStart').innerText = "再次測試";
 
             },
 
