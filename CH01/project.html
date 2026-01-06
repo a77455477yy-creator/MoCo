@@ -8,10 +8,10 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>跨國遊戲 Ping 測試 (含 API 地址查詢)</title>
-
-    <style>
-
+    <title>行動通訊專題-延遲測試</title>
+  
+      //美化樣式CSS由AI製作
+      <style>
         body { 
 
             background-color: #121212; 
@@ -172,45 +172,45 @@
 
 
 
-    <h2>🌏 訊號與 Ping 實測 (API 作業版)</h2>
+    <h2>延遲測試(PING值)</h2>
 
     
 
     <div class="status-box">
-
-        <p>📡 經緯度: <span id="gpsInfo" class="highlight">等待啟動...</span></p>
-
-        <p>📍 API 地址: <span id="addressInfo" class="highlight">等待查詢...</span></p>
+      
+        //id="..."是給JavaScript待抓到資料後，替換抓到的資料
+        <p>經緯度: <span id="gpsInfo" class="highlight">等待啟動...</span></p>
+        <p>API 地址: <span id="addressInfo" class="highlight">等待查詢...</span></p>
 
     </div>
 
 
 
-    <input type="text" id="locationNote" placeholder="備註 (例如: 學校圖書館 / 5G訊號)...">
+    <input type="text" id="locationNote" placeholder="輸入測試地點">
 
 
-
-    <button id="btnStart" onclick="app.start()">🚀 開始測試</button>
+    //按下按鈕，會執行程式碼中，有關start()物件的功能，即程式的啟動開關
+    <button id="btnStart" onclick="app.start()">開始測試</button>
 
 
 
     <div id="list">
 
-        <div class="server-item">🇹🇼 台灣 (TW) <span id="res-tw" class="ping-result">-- ms</span></div>
+        <div class="server-item">台灣 (TW) <span id="res-tw" class="ping-result">-- ms</span></div>
 
-        <div class="server-item">🇯🇵 日本 (JP) <span id="res-jp" class="ping-result">-- ms</span></div>
+        <div class="server-item">日本 (JP) <span id="res-jp" class="ping-result">-- ms</span></div>
 
-        <div class="server-item">🇰🇷 韓國 (KR) <span id="res-kr" class="ping-result">-- ms</span></div>
+        <div class="server-item">韓國 (KR) <span id="res-kr" class="ping-result">-- ms</span></div>
 
-        <div class="server-item">🇸🇬 新加坡 (SG) <span id="res-sg" class="ping-result">-- ms</span></div>
+        <div class="server-item">新加坡 (SG) <span id="res-sg" class="ping-result">-- ms</span></div>
 
-        <div class="server-item">🇺🇸 美國 (US) <span id="res-us" class="ping-result">-- ms</span></div>
+        <div class="server-item">美國 (US) <span id="res-us" class="ping-result">-- ms</span></div>
 
     </div>
 
 
 
-    <h3>📊 測試報告 (JSON)</h3>
+    <h3>測試結果</h3>
 
     <div id="jsonBox">等待開始...</div>
 
@@ -242,13 +242,11 @@
 
 
 
-            start: function() {
+                start: function() {
 
-                // UI 鎖定
-
+                // 按鈕鎖定功能，避免重複觸發，並將文字改顯示為正在定位...
                 document.getElementById('btnStart').disabled = true;
-
-                document.getElementById('btnStart').innerText = "🛰️ 正在定位...";
+                document.getElementById('btnStart').innerText = "正在定位...";
 
                 document.getElementById('gpsInfo').innerText = "定位中...";
 
