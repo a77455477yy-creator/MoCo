@@ -254,7 +254,7 @@
 
 
                 // 啟動getGPS的功能，等getGPS程式碼的承諾完成後，然後將結果存進pos
-                this.getGPS().then(function(pos) {
+                this.getGPS().then((pos) => {
 
                     // 拿到 GPS 後，再呼叫runTest開始跑測試流程，並且將pos的lat及lon傳遞到runTest的參數
                     this.runTest(pos.lat, pos.lon);
