@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>台中 YouBike 2.0 導航 (最終優化版)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
+    #bar { padding: 12px; background: white; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+    #map { flex: 1; width: 100%; }
+    #list-container { height: 260px; overflow-y: auto; background: white; border-top: 3px solid #28a745; z-index: 1001; }
+    .list-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; align-items: center; cursor: pointer; }
+    .list-item:active { background: #f1f3f4; }
+    .list-name { font-weight: bold; font-size: 16px; color: #333; }
+    .bike-num { font-size: 24px; font-weight: bold; }
+    button#btn { padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .popup-flex { display: flex; align-items: stretch; min-height: 100px; width: 250px; }
+    .nav-btn-right { width: 80px; background: #4285f4; color: white !important; display: flex; flex-direction: column; justify-content: center; align-items: center; text-decoration: none; border-left: 1px solid #eee; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <button id="btn" onclick="startApp()">🔍 尋找附近站點</button>
+    <div id="status" style="font-size: 12px; color: #666;">等待定位...</div>
+  </div>
+  <div id="map"></div>
+  <div id="list-container"><div style="padding:40px; text-align:center; color:#999;">啟動後自動顯示 2km 內排序清單</div></div>
+
+  <script>
+    const PROXY = "https://api.allorigins.win/get?url=";
+    const API_AVAIL = "https://ptx.transportdata.tw/MOTC/v2/Bike/Availability/Taichung?$format=JSON";
+    const API_STATION = "https://ptx.transportdata.tw/MOTC/v2/Bike/Station/Taichung?$format=JSON";
+
+    let map, userPos, userMarker, stationGroup, markers = {};
+
+    function initMap(lat, lon) {
+      if (map) return;
+      map = L.map("map", { zoomControl: false }).setView([lat, lon], 16);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+      stationGroup = L.layerGroup().addTo(map);
+    }
+
+    async function startApp() {
+      const status = document.getElementById("status");
+      status.innerText = "📍 定位中...";
+      
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        initMap(userPos.lat, userPos.lng);
+        map.setView([userPos.lat, userPos.lng], 16);
+
+        // 標記使用者位置 (藍點)
+        if (userMarker) userMarker.remove();
+        userMarker = L.circleMarker([userPos.lat, userPos.lng], {
+          radius: 8, color: 'white', weight: 2, fillColor: '#4285f4', fillOpacity: 1
+        }).addTo(map);
+
+        try {
+          status.innerText = "📡 讀取雲端資料...";
+          const [stRes, avRes] = await Promise.all([
+            fetch(PROXY + encodeURIComponent(API_STATION)),
+            fetch(PROXY + encodeURIComponent(API_AVAIL))
+          ]);
+          
+          const stData = JSON.parse((await stRes.json()).contents);
+          const avData = JSON.parse((await avRes.json()).contents);
+          const avMap = {};
+          avData.forEach(a => avMap[a.StationUID] = a);
+
+          renderUI(stData, avMap);
+          status.innerText = "✅ 已更新: " + new Date().toLocaleTimeString();
+        } catch (err) {
+          status.innerText = "❌ 連線失敗";
+        }
+      }, (err) => {
+        status.innerText = "❌ 定位被拒絕";
+        alert("請允許存取定位權限以獲取附近站點。");
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+
+    function renderUI(stData, avMap) {
+      const listEl = document.getElementById("list-container");
+      listEl.innerHTML = "";
+      stationGroup.clearLayers();
+
+      const nearby = stData.map(s => {
+        const av = avMap[s.StationUID] || { AvailableRentBikes: 0 };
+        return {
+          uid: s.StationUID,
+          name: s.StationName.Zh_tw.replace('YouBike2.0_', ''),
+          lat: s.StationPosition.PositionLat,
+          lng: s.StationPosition.PositionLon,
+          bikes: av.AvailableRentBikes,
+          dist: map.distance([userPos.lat, userPos.lng], [s.StationPosition.PositionLat, s.StationPosition.PositionLon])
+        };
+      }).filter(s => s.dist < 2000).sort((a, b) => a.dist - b.dist);
+
+      if (nearby.length === 0) {
+        listEl.innerHTML = '<div style="padding:40px; text-align:center; color:#999;">半徑 2km 內找不到站點</div>';
+        return;
+      }
+
+      nearby.forEach(s => {
+        const hex = s.bikes > 5 ? '#28a745' : (s.bikes > 0 ? '#e67e22' : '#dc3545');
+        const colorName = s.bikes > 5 ? 'green' : (s.bikes > 0 ? 'orange' : 'red');
+        
+        const marker = L.marker([s.lat, s.lng], {
+          icon: L.icon({
+            iconUrl: `https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${colorName}.png`,
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34]
+          })
+        }).addTo(stationGroup);
+
+        const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`;
+        
+        marker.bindPopup(`
+          <div class="popup-flex">
+            <div style="padding:15px;flex:1;">
+              <b>${s.name}</b><br>
+              可借: <span style="color:${hex}; font-weight:bold;">${s.bikes}</span>
+            </div>
+            <a href="${navUrl}" target="_blank" class="nav-btn-right">🧭<br>導航</a>
+          </div>
+        `);
+        markers[s.uid] = marker;
+
+        const item = document.createElement("div");
+        item.className = "list-item";
+        item.innerHTML = `
+          <div>
+            <div class="list-name">${s.name}</div>
+            <div style="font-size:12px;color:#666;">距離 ${Math.round(s.dist)}m</div>
+          </div>
+          <div class="bike-num" style="color:${hex}">${s.bikes}</div>
+        `;
+        item.onclick = () => {
+          map.flyTo([s.lat, s.lng], 18);
+          setTimeout(() => markers[s.uid].openPopup(), 400);
+        };
+        listEl.appendChild(item);
+      });
+    }
+  </script>
+</body>
+</html>
