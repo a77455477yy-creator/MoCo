@@ -29,10 +29,9 @@
   <div id="list-container"><div style="padding:40px; text-align:center; color:#999;">啟動後自動顯示 2km 內排序清單</div></div>
 
   <script>
-    const PROXY = "https://api.allorigins.win/get?url=";
+    // 🔴 改用 corsproxy.io，速度通常比較快且穩定
+    const PROXY = "https://corsproxy.io/?";
     
-    // 🔴 修正重點：改用 TDX 新版 API (Basic版本，免Token但有流量限制)
-    // 注意路徑多了 /City/
     const API_AVAIL = "https://tdx.transportdata.tw/api/basic/v2/Bike/Availability/City/Taichung?%24format=JSON";
     const API_STATION = "https://tdx.transportdata.tw/api/basic/v2/Bike/Station/City/Taichung?%24format=JSON";
 
@@ -62,33 +61,32 @@
         }).addTo(map);
 
         try {
-          status.innerText = "📡 讀取雲端資料...";
+          status.innerText = "📡 連線中 (corsproxy)...";
           
-          // 並行請求站點資訊與即時車位
           const [stRes, avRes] = await Promise.all([
             fetch(PROXY + encodeURIComponent(API_STATION)),
             fetch(PROXY + encodeURIComponent(API_AVAIL))
           ]);
           
-          const stJson = await stRes.json();
-          const avJson = await avRes.json();
-
-          // 解析 AllOrigins 的 contents 內容
-          const stData = JSON.parse(stJson.contents);
-          const avData = JSON.parse(avJson.contents);
+          // 🔴 修正點：corsproxy 會直接回傳原始 JSON，不需要再解一次 .contents
+          const stData = await stRes.json();
+          const avData = await avRes.json();
 
           const avMap = {};
-          avData.forEach(a => avMap[a.StationUID] = a);
+          // 確保資料是陣列 (有時候 TDX 錯誤會回傳物件)
+          if (Array.isArray(avData)) {
+            avData.forEach(a => avMap[a.StationUID] = a);
+          }
 
           renderUI(stData, avMap);
-          status.innerText = "✅ 已更新: " + new Date().toLocaleTimeString();
+          status.innerText = "✅ 更新成功";
         } catch (err) {
           console.error(err);
-          status.innerText = "❌ 資料讀取失敗 (可能 API 忙碌)";
+          status.innerText = "❌ 連線失敗，請稍後再試";
         }
       }, (err) => {
-        status.innerText = "❌ 定位被拒絕";
-        alert("請允許存取定位權限以獲取附近站點。");
+        status.innerText = "❌ 定位失敗";
+        alert("需要定位權限");
       }, { enableHighAccuracy: true, timeout: 10000 });
     }
 
@@ -96,6 +94,8 @@
       const listEl = document.getElementById("list-container");
       listEl.innerHTML = "";
       stationGroup.clearLayers();
+
+      if (!Array.isArray(stData)) return; // 錯誤防護
 
       const nearby = stData.map(s => {
         const av = avMap[s.StationUID] || { AvailableRentBikes: 0 };
@@ -110,7 +110,7 @@
       }).filter(s => s.dist < 2000).sort((a, b) => a.dist - b.dist);
 
       if (nearby.length === 0) {
-        listEl.innerHTML = '<div style="padding:40px; text-align:center; color:#999;">半徑 2km 內找不到站點</div>';
+        listEl.innerHTML = '<div style="padding:40px; text-align:center; color:#999;">附近無站點</div>';
         return;
       }
 
@@ -125,14 +125,14 @@
           })
         }).addTo(stationGroup);
 
-        // 🔴 修正重點：修復 URL 語法錯誤，並改用標準 Google Maps 連結
+        // 使用 Google Maps 通用協議連結
         const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`;
         
         marker.bindPopup(`
           <div class="popup-flex">
             <div style="padding:15px;flex:1;">
               <b>${s.name}</b><br>
-              可借: <span style="color:${hex}; font-weight:bold;">${s.bikes}</span>
+              車輛: <span style="color:${hex}; font-weight:bold;">${s.bikes}</span>
             </div>
             <a href="${navUrl}" target="_blank" class="nav-btn-right">🧭<br>導航</a>
           </div>
@@ -144,7 +144,7 @@
         item.innerHTML = `
           <div>
             <div class="list-name">${s.name}</div>
-            <div style="font-size:12px;color:#666;">距離 ${Math.round(s.dist)}m</div>
+            <div style="font-size:12px;color:#666;">${Math.round(s.dist)} 公尺</div>
           </div>
           <div class="bike-num" style="color:${hex}">${s.bikes}</div>
         `;
