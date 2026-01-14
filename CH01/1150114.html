@@ -44,13 +44,6 @@
       stationGroup = L.layerGroup().addTo(map);
     }
 
-// 定義新的代理伺服器 (比原本的穩定)
-    const PROXY = "https://corsproxy.io/?";
-    
-    // 使用 TDX 新版網域 (ptx 已逐漸淘汰)
-    const API_AVAIL = "https://tdx.transportdata.tw/api/basic/v2/Bike/Availability/Taichung?$format=JSON";
-    const API_STATION = "https://tdx.transportdata.tw/api/basic/v2/Bike/Station/Taichung?$format=JSON";
-
     async function startApp() {
       const status = document.getElementById("status");
       status.innerText = "📍 定位中...";
@@ -60,7 +53,7 @@
         initMap(userPos.lat, userPos.lng);
         map.setView([userPos.lat, userPos.lng], 16);
 
-        // 標記使用者位置
+        // 標記使用者位置 (藍點)
         if (userMarker) userMarker.remove();
         userMarker = L.circleMarker([userPos.lat, userPos.lng], {
           radius: 8, color: 'white', weight: 2, fillColor: '#4285f4', fillOpacity: 1
@@ -68,28 +61,20 @@
 
         try {
           status.innerText = "📡 讀取雲端資料...";
-          
-          // 修改重點：使用新的 Proxy 請求資料
           const [stRes, avRes] = await Promise.all([
             fetch(PROXY + encodeURIComponent(API_STATION)),
             fetch(PROXY + encodeURIComponent(API_AVAIL))
           ]);
           
-          if (!stRes.ok || !avRes.ok) throw new Error("API 回傳錯誤");
-
-          // 修改重點：corsproxy 直接回傳 JSON，不需要再取 .contents 也不用 JSON.parse 兩次
-          const stData = await stRes.json();
-          const avData = await avRes.json();
-
+          const stData = JSON.parse((await stRes.json()).contents);
+          const avData = JSON.parse((await avRes.json()).contents);
           const avMap = {};
           avData.forEach(a => avMap[a.StationUID] = a);
 
           renderUI(stData, avMap);
           status.innerText = "✅ 已更新: " + new Date().toLocaleTimeString();
         } catch (err) {
-          console.error(err); // 在 Console 顯示詳細錯誤
-          status.innerText = "❌ 連線失敗 (請按 F12 看 Console)";
-          alert("讀取失敗，可能是 API 限制流量，請稍後再試。");
+          status.innerText = "❌ 連線失敗";
         }
       }, (err) => {
         status.innerText = "❌ 定位被拒絕";
@@ -130,9 +115,7 @@
           })
         }).addTo(stationGroup);
 
-        // 使用 Google Maps Universal Link
         const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking`;
-        
         
         marker.bindPopup(`
           <div class="popup-flex">
